@@ -61,15 +61,32 @@ void sortVertices(int matrix[MAX_VERTICES][MAX_VERTICES], int numVertices) {
     }
 }
 
-void printMatrix(int matrix[MAX_VERTICES][MAX_VERTICES], int numVertices) {
-    int i, j;
-
-    for (i = 0; i < numVertices; i++) {
-        for (j = 0; j < numVertices; j++) {
-            printf("%d ", matrix[i][j]);
-        }
-        printf("\n");
+void generateGraph(int matrix[MAX_VERTICES][MAX_VERTICES], int numVertices) {
+    FILE *dotFile;
+    dotFile = fopen("graph.dot", "w");
+    
+    if (dotFile == NULL) {
+        printf("Error opening the DOT file.\n");
+        return;
     }
+    
+    fprintf(dotFile, "graph G {\n");
+    
+    // Write DOT representation of the graph
+    for (int i = 0; i < numVertices; i++) {
+        for (int j = i + 1; j < numVertices; j++) {
+            if (matrix[i][j] == 1) {
+                fprintf(dotFile, "    %d -- %d;\n", i, j);
+            }
+        }
+    }
+    
+    fprintf(dotFile, "}\n");
+    fclose(dotFile);
+    
+    // Generate the graph image using Graphviz
+    system("dot -Tpng graph.dot -o graph.png");
+    printf("Graph visualization saved as 'graph.png'.\n");
 }
 
 int main() {
