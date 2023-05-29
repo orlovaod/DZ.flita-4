@@ -1,134 +1,119 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
-#define MAX_VERTICES 100
+typedef struct vert {
+    int number_vert;
+    int count_degrees;
+} Vert;
 
-void deleteVertex(int matrix[MAX_VERTICES][MAX_VERTICES], int numVertices, int vertex) {
-    int i, j;
 
-    // Shift rows up
-    for (i = vertex; i < numVertices - 1; i++) {
-        for (j = 0; j < numVertices; j++) {
-            matrix[i][j] = matrix[i + 1][j];
+void insertion_sort(int numbers, int count, int delete_vert) {
+    FILE *inputfile;
+    int roads, count_verts, count_edges, count_all_elems = 0;
+    char first_string[100];
+    inputfile = fopen("array.txt", "r");
+    fgets(first_string, 100, inputfile);
+    count_edges = strlen(first_string) / 2;
+    fseek(inputfile, 0, SEEK_SET);
+    while (fscanf(inputfile, "%d", &roads) != EOF) {
+        count_all_elems++;
+    }
+    count_verts = count_all_elems / count_edges;
+    fseek(inputfile, 0, SEEK_SET);
+    int matrix = (int ) malloc(count_verts * sizeof(int *));
+    for (int i = 0; i < count_verts; i++) {
+        matrix[i] = (int *) malloc(count_edges * sizeof(int));
+    }
+    int count_deg;
+    
+    double worktime;
+    struct timespec start_time, end_time;
+
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
+    for (int i = 0; i < count_verts; i++) {
+        for (int j = 0; j < (count_edges); j++) {
+            fscanf(inputfile, "%d", &matrix[i][j]);
         }
     }
+    fclose(inputfile);
 
-    // Shift columns left
-    for (i = 0; i < numVertices; i++) {
-        for (j = vertex; j < numVertices - 1; j++) {
-            matrix[i][j] = matrix[i][j + 1];
-        }
+    Vert even_verts[count_verts];
+    for (int i = 0; i < count_verts; i++) {
+        even_verts[i].number_vert = -1;
+        even_verts[i].count_degrees = -1;
     }
-}
-
-void sortVertices(int matrix[MAX_VERTICES][MAX_VERTICES], int numVertices) {
-    int i, j, k, degree[MAX_VERTICES], temp;
-
-    // Calculate degree for each vertex
-    for (i = 0; i < numVertices; i++) {
-        degree[i] = 0;
-        for (j = 0; j < numVertices; j++) {
-            if (matrix[i][j] == 1) {
-                degree[i]++;
+    for (int i = 0; i < count_verts; i++) {
+        if (i==delete_vert) {
+            for (int j = 0; j < (count_edges); j++) {
+                matrix[i][j] = 0;
             }
         }
     }
-
-    // Sort vertices in ascending order based on degree
-    for (i = 0; i < numVertices - 1; i++) {
-        for (j = 0; j < numVertices - i - 1; j++) {
-            if (degree[j] > degree[j + 1]) {
-                // Swap vertices
-                temp = degree[j];
-                degree[j] = degree[j + 1];
-                degree[j + 1] = temp;
-
-                // Swap rows
-                for (k = 0; k < numVertices; k++) {
-                    temp = matrix[j][k];
-                    matrix[j][k] = matrix[j + 1][k];
-                    matrix[j + 1][k] = temp;
-                }
-
-                // Swap columns
-                for (k = 0; k < numVertices; k++) {
-                    temp = matrix[k][j];
-                    matrix[k][j] = matrix[k][j + 1];
-                    matrix[k][j + 1] = temp;
-                }
-            }
+    for (int i = 0; i < count_verts; i++) {
+        count_deg = 0;
+        for (int j = 0; j < (count_edges); j++) {
+            if (matrix[i][j] == 1) count_deg++;
+        }
+        if (i != delete_vert) {
+            even_verts[i].number_vert = i;
+            even_verts[i].count_degrees = count_deg;
         }
     }
-}
-
-void generateGraph(int matrix[MAX_VERTICES][MAX_VERTICES], int numVertices) {
-    FILE *dotFile;
-    dotFile = fopen("graph.dot", "w");
-    
-    if (dotFile == NULL) {
-        printf("Error opening the DOT file.\n");
-        return;
-    }
-    
-    fprintf(dotFile, "graph G {\n");
-    
-    // Write DOT representation of the graph
-    for (int i = 0; i < numVertices; i++) {
-        for (int j = i + 1; j < numVertices; j++) {
-            if (matrix[i][j] == 1) {
-                fprintf(dotFile, "    %d -- %d;\n", i, j);
-            }
+    int location;
+    Vert new_elem;
+    for (int i = 1; i < count_verts; i++) {
+        new_elem = even_verts[i];
+        location = i - 1;
+        while (location >= 0 && even_verts[location].count_degrees > new_elem.count_degrees) {
+            even_verts[location + 1] = even_verts[location];
+            location = location - 1;
         }
+        even_verts[location + 1] = new_elem;
     }
-    
-    fprintf(dotFile, "}\n");
-    fclose(dotFile);
-    
-    // Generate the graph image using Graphviz
-    system("dot -Tpng graph.dot -o graph.png");
-    printf("Graph visualization saved as 'graph.png'.\n");
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
+    worktime = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_nsec - start_time.tv_nsec) / 1e9;
+    printf("%.7f", worktime);
+    printf("\n\n");
+    fclose(inputfile);
+    FILE *file_out = fopen("info.txt", "a+");
+    fprintf(file_out, "%d %.7f", numbers, worktime);
+    if (count != 5) {
+        fprintf(file_out, "\n");
+    }
+    free(matrix);
+    fclose(file_out);
 }
 
 int main() {
-    FILE *file;
-    int matrix[MAX_VERTICES][MAX_VERTICES];
-    int numVertices, vertexToDelete, i, j;
-
-    // Open the input file
-    file = fopen("input.txt", "r");
-    if (file == NULL) {
-        printf("Error opening the file.\n");
-        return 1;
-    }
-
-    // Read the adjacency matrix from the file
-    fscanf(file, "%d", &numVertices);
-    for (i = 0; i < numVertices; i++) {
-        for (j = 0; j < numVertices; j++) {
-            fscanf(file, "%d", &matrix[i][j]);
-        }
-    }
-
-    // Close the file
+    int numbers = 100;
+    int number, count = 0;
+    int dlt_vert;
+    FILE *file = fopen("array.txt", "w");
     fclose(file);
+    FILE *file_out = fopen("info.txt", "w");
+    fclose(file_out);
+    for (int i = 0; i < 6; i++) {
+        FILE *file_out = fopen("info.txt", "a+");
+        file = fopen("array.txt", "w");
+        srand(time(NULL));
+        dlt_vert = rand() % numbers;
+        for (int j = 0; j < numbers; j++) {
+            number = rand() % 1;
+            fprintf(file, "%d", number);
+            for (int k = 0; k < numbers - 1; k++) {
+                number = rand() % 1;
+                fprintf(file, " %d", number);
+            }
+            fprintf(file, "\n");
+        }
 
-    // Print the original matrix
-    printf("Original Matrix:\n");
-    printMatrix(matrix, numVertices);
-
-    // Get the vertex to delete from the user
-    printf("Enter the vertex to delete: ");
-    scanf("%d", &vertexToDelete);
-
-    // Delete the specified vertex
-    deleteVertex(matrix, numVertices, vertexToDelete);
-
-    // Sort the remaining vertices based on degree
-    sortVertices(matrix, numVertices - 1);
-
-    // Print the modified matrix
-    printf("\nModified Matrix:\n");
-    printMatrix(matrix, numVertices - 1);
-
+        fclose(file_out);
+        insertion_sort(numbers, count, dlt_vert);
+        count++;
+        numbers *= 2;
+    }
+    system("gnuplot -e \"plot 'info.txt' u 1:2 with lines, '' u 1:2 with points; pause -1\" && echo Plot generated successfully");
     return 0;
 }
